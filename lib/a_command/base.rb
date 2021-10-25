@@ -3,11 +3,12 @@
 module ACommand
   class Base
     attr_reader :ctx
-    attr_accessor :fail_mode, :failed_step
+    attr_accessor :fail_mode, :failed_step, :pass_fast_mode
 
     def initialize(ctx)
       @ctx = ctx
       @fail_mode = false
+      @pass_fast_mode = false
     end
 
     def perform
@@ -20,6 +21,10 @@ module ACommand
 
     def failure
       Failure.new(@ctx, @failed_step)
+    end
+
+    def pass_fast
+      PassFast.new(@ctx)
     end
 
     class << self
@@ -59,7 +64,10 @@ module ACommand
           inst = new(ctx)
           res = nil
           @steps.each do |action|
-            if inst.fail_mode
+            pp res
+            if inst.pass_fast_mode
+              next
+            elsif inst.fail_mode
               if action.kind == :fail
                 process_step(action, inst)
                 return inst.failure
@@ -72,10 +80,15 @@ module ACommand
                 inst.failed_step = action
                 inst.fail_mode = true
               end
+              if !inst.fail_mode && (res == PassFast || res.is_a?(PassFast))
+                inst.pass_fast_mode = true
+              end
             end
           end
           if !res || res.is_a?(Failure)
             return inst.failure
+          elsif res == PassFast
+            return inst.pass_fast
           else
             return inst.success
           end
@@ -165,6 +178,8 @@ module ACommand
   class Success < Result; end
 
   class Failure < Result; end
+  
+  class PassFast < Success; end
 
   class StepWrapper
     attr_accessor :kind, :action, :block

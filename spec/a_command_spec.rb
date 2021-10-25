@@ -158,6 +158,93 @@ RSpec.describe ACommand do
     end
   end
 
+  context "Pass Fast" do
+    let(:command) {
+      Class.new(ACommand::Base) do
+        step :success_method
+        step ->(ctx){ACommand::PassFast}
+        fail ->(ctx){ctx[:fail_method] = true}
+        step ->(ctx){ctx[:second_success_method] = true}
+
+        def success_method(ctx, **)
+          ctx[:success_method] = true
+        end
+      end
+    }
+
+    it "Should pass fast" do
+      res = command.()
+      expect(res.success?).to eq true
+      expect(res[:success_method]).to eq true
+      expect(res[:fail_method]).to eq nil
+      expect(res[:second_success_method]).to eq nil
+    end
+  end
+
+  context "Pass Fast (Subcommand)" do
+    let(:command) {
+      sub = Class.new(ACommand::Base) do
+        step ->(ctx){ACommand::PassFast}
+      end
+
+      Class.new(ACommand::Base) do
+        step Subprocess(sub)
+        step :success_method
+        fail ->(ctx){ctx[:fail_method] = true}
+
+        def success_method(ctx, **)
+          ctx[:success_method] = true
+        end
+      end
+    }
+
+    it "Should pass fast from subcommand" do
+      res = command.()
+      expect(res.success?).to eq true
+      expect(res[:success_method]).to eq nil
+      expect(res[:fail_method]).to eq nil
+    end
+  end
+
+  context "Pass Fast (Wrapped)" do
+    let(:command) {
+      wrapping_entity = Class.new do
+        class << self
+          def call(ctx, block)
+            ctx[:start_wrap] = true
+            block.call
+            ctx[:end_wrap] = true
+          end
+        end
+      end
+
+      Class.new(ACommand::Base) do
+        step Wrap(wrapping_entity) {
+          step ->(ctx){ACommand::PassFast}
+        }
+        step ->(ctx){ctx[:after_wrap] = true}
+      end
+    }
+
+    it "Should pass fast from wrapped" do
+      res = command.()
+      expect(res.success?).to eq true
+      expect(res[:start_wrap]).to eq true
+      expect(res[:end_wrap]).to eq true
+      expect(res[:after_wrap]).to eq nil
+    end
+  end
+
+  context "Empty commands" do
+    let(:command) {
+      Class.new(ACommand::Base)
+    }
+
+    it "Should raise an exception" do
+      expect { command.() }.to raise_error(NotImplementedError)
+    end
+  end
+
   context "Perform (alternative syntax)" do
     let(:command) {
       Class.new(ACommand::Base) do
