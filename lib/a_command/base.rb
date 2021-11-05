@@ -64,7 +64,6 @@ module ACommand
           inst = new(ctx)
           res = nil
           @steps.each do |action|
-            pp res
             if inst.pass_fast_mode
               next
             elsif inst.fail_mode
