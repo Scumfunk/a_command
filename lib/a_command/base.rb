@@ -104,11 +104,11 @@ module ACommand
       private def process_step(step, inst)
         res = nil
         if step.kind == :nested
-          step.action = inst.send(step.action, inst.ctx, inst.ctx.data)
+          step.action = inst.send(step.action, inst.ctx, **inst.ctx.data)
         end
         case step.action.class.to_s
         when 'Symbol', 'String'
-          res = inst.send(step.action, inst.ctx, inst.ctx.data)
+          res = inst.send(step.action, inst.ctx, **inst.ctx.data)
         else
           if step.block == nil
             res = step.action.(inst.ctx)
