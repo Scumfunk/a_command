@@ -113,7 +113,7 @@ module ACommand
           if step.block == nil
             res = step.action.(inst.ctx)
           else
-            command = Class.new(::ACommand::Base, &step.block)
+            command = Class.new(self, &step.block)
             step.action.(inst.ctx, ->{res = command.call(inst.ctx)})
           end
         end
