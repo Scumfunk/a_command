@@ -101,7 +101,7 @@ module ACommand
         end
       end
 
-      private def process_step(step, inst)
+      def process_step(step, inst)
         res = nil
         if step.kind == :nested
           step.action = inst.send(step.action, inst.ctx, **inst.ctx.data)
